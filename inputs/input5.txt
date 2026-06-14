@@ -1,0 +1,19 @@
+fun int main()
+    var int x;
+    x = 1;
+    do
+        switch x
+        case 1
+            print(10);
+            break
+        case 2
+            print(20);
+            break
+        default
+            print(99)
+        endswitch;
+        x = x + 1;
+    dowhile x <= 3
+    enddo;
+    return(0)
+endfun

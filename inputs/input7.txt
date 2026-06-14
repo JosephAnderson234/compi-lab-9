@@ -1,0 +1,22 @@
+fun int main()
+    var int x,z;
+    x = 1;
+    z = 3;
+    do
+        switch x
+        case 1
+            print(111);
+            break
+        case 2
+            print(222);
+            break
+        default
+            print(999)
+        endswitch;
+        x = x + 1
+    dowhile x <= z
+    enddo;
+
+    return(0)
+
+endfun

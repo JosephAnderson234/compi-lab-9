@@ -1,0 +1,9 @@
+fun int main()
+    var list ia
+    ia = new int {5, 6, 7};
+    print(ia[2]);
+    ia[2] = 9;
+    print(ia[0]);
+    print(ia[1]);
+    print(ia[2])
+endfun

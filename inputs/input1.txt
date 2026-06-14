@@ -1,0 +1,15 @@
+fun int main()
+    var int suma,i;
+    suma = 0;
+    i = 1;
+    while (i <= 10) do
+        suma = suma + i;
+        i = i + 1;
+        if (i > 5) then 
+            break
+        endif;
+    endwhile;
+    print(i);
+    print(suma);
+    return(0)
+endfun

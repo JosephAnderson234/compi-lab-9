@@ -1,0 +1,12 @@
+fun int main()
+    var int x,y,z;
+    x = 5;
+    y = 8;
+    z = 10;
+    if x < y then
+        if (y < z) && (x < z) then
+            print(1)
+        endif
+    endif;
+    return(0)
+endfun

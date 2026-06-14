@@ -1,0 +1,28 @@
+fun int main()
+    var int x,y,z;
+    x = 1;
+    y = 3;
+    z = 5;
+    do
+        if (x <= y) && (z > y) then
+            print(x)
+        endif
+        switch x
+        case 1
+            print(100);
+            break
+        case 2
+            print(200);
+            break
+        case 3
+            print(300);
+            break
+        default
+            print(999)
+        endswitch;
+        x = x + 1
+    dowhile (x <= 4) || (x == 5)
+    enddo;
+    return(0)
+
+endfun

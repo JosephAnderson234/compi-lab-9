@@ -1,0 +1,10 @@
+fun int main()
+    var int x,y,z;
+    x = 5;
+    y = 10;
+    z = 15;
+    if ((x < y) && (y < z)) || (z == 0) then
+        print(1)
+    endif;
+    return(0)
+endfun
