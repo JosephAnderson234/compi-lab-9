@@ -1,0 +1,6 @@
+outputs
+*.out
+*.pdf
+*.md
+!README.md
+.vscode/*

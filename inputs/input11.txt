@@ -1,5 +1,5 @@
-var list ia
 fun int main()
+    var list ia;
     ia = new int[3];
     ia[0] = 2;
     ia[1] = 2 * 3;
