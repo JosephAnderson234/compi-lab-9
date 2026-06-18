@@ -1,22 +1,24 @@
+struct Vec3 {
+ var int x;
+ var int y;
+ var int z;
+};
+
 fun int main()
-    var int x,z;
-    x = 1;
-    z = 3;
-    do
-        switch x
-        case 1
-            print(111);
-            break
-        case 2
-            print(222);
-            break
-        default
-            print(999)
-        endswitch;
-        x = x + 1
-    dowhile x <= z
-    enddo;
-
-    return(0)
-
+ var Vec3 v;
+ var int i;
+ v = new Vec3{10, 20, 30};
+ i = 0;
+ while (i < 3) do
+   switch i
+   case 0
+     print(v.x)
+   case 1
+     print(v.y)
+   case 2
+     print(v.z)
+   endswitch;
+   i = i + 1
+ endwhile;
+ return(0)
 endfun

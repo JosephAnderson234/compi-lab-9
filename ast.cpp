@@ -88,6 +88,32 @@ IndexExp::IndexExp(const std::string &name, Exp *index)
     : name(name), index(index) {}
 
 // =============================================================================
+// FieldAccessExp
+// =============================================================================
+FieldAccessExp::FieldAccessExp(const std::string &name, const std::string &field)
+    : name(name), field(field) {}
+FieldAccessExp::~FieldAccessExp() {}
+
+// =============================================================================
+// MultiIndexExp
+// =============================================================================
+MultiIndexExp::MultiIndexExp(const std::string &name) : name(name) {}
+MultiIndexExp::~MultiIndexExp() {
+  for (auto idx : indices)
+    delete idx;
+}
+
+// =============================================================================
+// ExpListSize2D
+// =============================================================================
+ExpListSize2D::ExpListSize2D(std::string t, Exp *s1, Exp *s2)
+    : type(t), size1(s1), size2(s2) {}
+ExpListSize2D::~ExpListSize2D() {
+  delete size1;
+  delete size2;
+}
+
+// =============================================================================
 // Stm
 // =============================================================================
 
@@ -158,6 +184,12 @@ SwitchStm::SwitchStm(Exp *expr) : e(expr) {}
 VarDec::VarDec() {}
 
 VarDec::~VarDec() {}
+
+// =============================================================================
+// StructDec
+// =============================================================================
+StructDec::StructDec() : fields(std::list<VarDec *>()) {}
+StructDec::~StructDec() {}
 // =============================================================================
 // Body
 // =============================================================================

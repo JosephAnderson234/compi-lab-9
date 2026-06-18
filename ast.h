@@ -36,6 +36,7 @@
 class Visitor;
 class VarDec;
 class Body;
+class StructDec;
 
 // =============================================================================
 // Operadores binarios
@@ -131,6 +132,17 @@ public:
   ~ExpListVals();
 };
 
+// ---- Matriz 2D: new ID[CE][CE] ----
+class ExpListSize2D : public Exp {
+public:
+  std::string type;
+  Exp *size1; // filas
+  Exp *size2; // columnas
+  ExpListSize2D(std::string t, Exp *s1, Exp *s2);
+  int accept(Visitor *visitor) override;
+  ~ExpListSize2D();
+};
+
 // ---- Llamada a función ----
 class FcallExp : public Exp {
 public:
@@ -150,6 +162,28 @@ public:
   int accept(Visitor *v) override;
   int computeAddress(Visitor *visitor) override;
   ~IndexExp();
+};
+
+// ---- Acceso a campo de struct: id.id ----
+class FieldAccessExp : public Exp {
+public:
+  std::string name;
+  std::string field;
+  FieldAccessExp(const std::string &name, const std::string &field);
+  int accept(Visitor *v) override;
+  int computeAddress(Visitor *visitor) override;
+  ~FieldAccessExp();
+};
+
+// ---- Acceso a matriz multi-indice: id[CE][CE] ----
+class MultiIndexExp : public Exp {
+public:
+  std::string name;
+  std::vector<Exp*> indices;
+  MultiIndexExp(const std::string &name);
+  int accept(Visitor *v) override;
+  int computeAddress(Visitor *visitor) override;
+  ~MultiIndexExp();
 };
 
 // =============================================================================
@@ -263,6 +297,16 @@ public:
   ~VarDec();
 };
 
+// ---- Definición de struct: struct id { VarDec; ... } ----
+class StructDec {
+public:
+  std::string name;
+  std::list<VarDec *> fields;
+  StructDec();
+  int accept(Visitor *visitor);
+  ~StructDec();
+};
+
 // ---- Cuerpo: VarDec* Stm* ----
 class Body {
 public:
@@ -286,9 +330,10 @@ public:
   ~FunDec() = default;
 };
 
-// ---- Programa: VarDec* FunDec* ----
+// ---- Programa: StructDec* VarDec* FunDec* ----
 class Program {
 public:
+  std::list<StructDec *> sdlist;
   std::list<VarDec *> vdlist;
   std::list<FunDec *> fdlist;
   Program() = default;

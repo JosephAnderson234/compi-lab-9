@@ -110,6 +110,10 @@ std::string Token::typeName(Type t) {
     return "'endswitch'";
   case VAR:
     return "'var'";
+  case STRUCT:
+    return "'struct'";
+  case DOT:
+    return "'.'";
   case FUN:
     return "'fun'";
   case ENDFUN:
@@ -250,6 +254,12 @@ std::ostream &operator<<(std::ostream &outs, const Token &tok) {
     break;
   case Token::VAR:
     outs << "TOKEN(VAR, \"" << tok.text << "\")";
+    break;
+  case Token::STRUCT:
+    outs << "TOKEN(STRUCT, \"" << tok.text << "\")";
+    break;
+  case Token::DOT:
+    outs << "TOKEN(DOT, \"" << tok.text << "\")";
     break;
   case Token::FUN:
     outs << "TOKEN(FUN, \"" << tok.text << "\")";

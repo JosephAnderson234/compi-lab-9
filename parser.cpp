@@ -92,6 +92,11 @@ void Parser::expect(Token::Type ttype) {
 Program *Parser::parseProgram() {
   Program *p = new Program();
 
+  // Definiciones de structs
+  while (check(Token::STRUCT)) {
+    p->sdlist.push_back(parseStructDec());
+  }
+
   // Declaraciones globales de variables
   while (check(Token::VAR)) {
     p->vdlist.push_back(parseVarDec());
@@ -144,6 +149,32 @@ VarDec *Parser::parseVarDec() {
     vd->vars.push_back(previous->text);
   }
   return vd;
+}
+
+// -----------------------------------------------------------------------------
+// StructDec → 'struct' id '{' VarDec ';' {VarDec ';'}* '}' [';']
+// -----------------------------------------------------------------------------
+StructDec *Parser::parseStructDec() {
+  expect(Token::STRUCT);
+
+  if (!match(Token::ID))
+    error("nombre del struct después de 'struct'");
+  StructDec *sd = new StructDec();
+  sd->name = previous->text;
+
+  expect(Token::LBRACE);
+
+  // Campos: VarDec ';' {VarDec ';'}*
+  while (check(Token::VAR)) {
+    sd->fields.push_back(parseVarDec());
+    if (!match(Token::SEMICOL))
+      break;
+  }
+
+  expect(Token::RBRACE);
+  match(Token::SEMICOL); // punto y coma opcional después de }
+
+  return sd;
 }
 
 // -----------------------------------------------------------------------------
@@ -257,20 +288,36 @@ Body *Parser::parseBody() {
 // Stm → AssignStm | PrintStm | ReturnStm | IfStm | WhileStm
 // -----------------------------------------------------------------------------
 Stm *Parser::parseStm() {
-  // ---- Asignación: ID '=' Exp or ID[CExp] '=' EXP ----
+  // ---- Asignación: VarAccess '=' CE ----
+  // VarAccess ::= id | id[CE] | id[CE][CE] | id.id
   if (match(Token::ID)) {
     std::string variable = previous->text;
 
-    // Check if ID[CE]
+    // Check if ID[CE] or ID[CE][CE]
     Exp *var = nullptr;
     if (match(Token::LBRACKET)) {
       Exp *idx = parseCE();
       expect(Token::RBRACKET);
-      var = new IndexExp(variable, idx);
+      // Check for second index [CE]
+      if (match(Token::LBRACKET)) {
+        MultiIndexExp *m = new MultiIndexExp(variable);
+        m->indices.push_back(idx);
+        Exp *idx2 = parseCE();
+        expect(Token::RBRACKET);
+        m->indices.push_back(idx2);
+        var = m;
+      } else {
+        var = new IndexExp(variable, idx);
+      }
+    } else if (match(Token::DOT)) {
+      // id.id
+      if (!match(Token::ID))
+        error("nombre de campo después de '.'");
+      var = new FieldAccessExp(variable, previous->text);
     } else {
       var = new IdExp(variable);
     }
-    // ID = CE
+    // VarAccess = CE
     if (match(Token::ASSIGN)) {
       Exp *rhs = parseCE();
       return new AssignStm(var, rhs);
@@ -502,17 +549,20 @@ Exp *Parser::parseF() {
   if (match(Token::NEW)) {
     match(Token::ID);
     std::string type = previous->text;
-    // a.1) id = new ID[CE]
+    // a.1) id = new ID[CE] or new ID[CE][CE]
     if (match(Token::LBRACKET)) {
       Exp *size = parseCE();
-      ExpListSize *e = new ExpListSize(type, size);
       match(Token::RBRACKET);
-      return e;
+      // Check for second dimension [CE]
+      if (match(Token::LBRACKET)) {
+        Exp *size2 = parseCE();
+        match(Token::RBRACKET);
+        return new ExpListSize2D(type, size, size2);
+      }
+      return new ExpListSize(type, size);
     }
     // a.2) id = new ID{CE (, CE)*}
     else if (match(Token::LBRACE)) {
-      match(Token::ID);
-      std::string type = previous->text;
       ExpListVals *e = new ExpListVals(type);
       e->values.push_back(parseCE());
       while (match(Token::COMA))
@@ -539,12 +589,26 @@ Exp *Parser::parseF() {
       expect(Token::RPAREN);
       return fcall;
     }
-    // ID[CE]
+    // ID[CE] o ID[CE][CE]
     else if (match(Token::LBRACKET)) {
       Exp *t = parseCE();
       expect(Token::RBRACKET);
-      IndexExp *index = new IndexExp(nom, t);
-      return index;
+      // Check for second index
+      if (match(Token::LBRACKET)) {
+        MultiIndexExp *m = new MultiIndexExp(nom);
+        m->indices.push_back(t);
+        Exp *t2 = parseCE();
+        expect(Token::RBRACKET);
+        m->indices.push_back(t2);
+        return m;
+      }
+      return new IndexExp(nom, t);
+    }
+    // ID.ID (field access)
+    else if (match(Token::DOT)) {
+      if (!match(Token::ID))
+        error("nombre de campo después de '.'");
+      return new FieldAccessExp(nom, previous->text);
     }
     return new IdExp(nom);
   }

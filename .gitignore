@@ -4,3 +4,4 @@ outputs
 *.md
 !README.md
 .vscode/*
+inputs/*.s

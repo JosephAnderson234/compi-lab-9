@@ -1,19 +1,17 @@
+struct Rect {
+ var int w;
+ var int h;
+};
+
 fun int main()
-    var int x;
-    x = 1;
-    do
-        switch x
-        case 1
-            print(10);
-            break
-        case 2
-            print(20);
-            break
-        default
-            print(99)
-        endswitch;
-        x = x + 1;
-    dowhile x <= 3
-    enddo;
-    return(0)
+ var Rect r;
+ var int area;
+ r = new Rect{3, 4};
+ if (r.w > r.h) then
+   area = r.w * r.w
+ else
+   area = r.w * r.h
+ endif;
+ print(area);
+ return(0)
 endfun

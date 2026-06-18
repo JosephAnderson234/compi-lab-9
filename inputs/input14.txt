@@ -1,6 +1,0 @@
-var list ia
-fun int main()
-    ia = new int {1 + 4 , 8 * 2};
-    print(ia[0]);
-    print(ia[1])
-endfun

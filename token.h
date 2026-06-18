@@ -79,6 +79,10 @@ public:
 
     // Declaraciones
     VAR, // var
+    STRUCT, // struct
+
+    // Operadores de acceso
+    DOT, // .
 
     // Funciones
     FUN,    // fun

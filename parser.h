@@ -44,6 +44,7 @@ public:
 
   // ---- Reglas de la gramática ----
   Program *parseProgram();
+  StructDec *parseStructDec();
   FunDec *parseFunDec();
   Body *parseBody();
   VarDec *parseVarDec();

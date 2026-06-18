@@ -26,6 +26,7 @@ int IfStm::accept(Visitor *v) { return v->visit(this); }
 int WhileStm::accept(Visitor *v) { return v->visit(this); }
 int Body::accept(Visitor *v) { return v->visit(this); }
 int VarDec::accept(Visitor *v) { return v->visit(this); }
+int StructDec::accept(Visitor *v) { return v->visit(this); }
 int FcallExp::accept(Visitor *v) { return v->visit(this); }
 int FunDec::accept(Visitor *v) { return v->visit(this); }
 int ReturnStm::accept(Visitor *v) { return v->visit(this); }
@@ -35,6 +36,11 @@ int SwitchStm::accept(Visitor *v) { return v->visit(this); }
 int UnaryExp::accept(Visitor *v) { return v->visit(this); }
 int IndexExp::accept(Visitor *v) { return v->visit(this); }
 int IndexExp ::computeAddress(Visitor *v) { return v->computeAddress(this); }
+int FieldAccessExp::accept(Visitor *v) { return v->visit(this); }
+int FieldAccessExp::computeAddress(Visitor *v) { return v->computeAddress(this); }
+int MultiIndexExp::accept(Visitor *v) { return v->visit(this); }
+int MultiIndexExp::computeAddress(Visitor *v) { return v->computeAddress(this); }
+int ExpListSize2D::accept(Visitor *v) { return v->visit(this); }
 
 // =============================================================================
 // Implementación de accept()
@@ -57,14 +63,19 @@ int IndexExp ::computeAddress(Visitor *v) { return v->computeAddress(this); }
 // -----------------------------------------------------------------------------
 
 int TypeCheckerVisitor::TypeChecker(Program *program) {
-  // Primera pasada: registrar todas las funciones y su aridad.
+  // Primera pasada: registrar structs
+  for (auto sd : program->sdlist) {
+    sd->accept(this);
+  }
+
+  // Segunda pasada: registrar todas las funciones y su aridad.
   // Esto permite llamadas hacia adelante (funciones que se usan antes de
   // ser definidas en el orden textual del fuente).
   for (auto fd : program->fdlist) {
     funAridad[fd->nombre] = static_cast<int>(fd->Pnombres.size());
   }
 
-  // Segunda pasada: analizar cada función
+  // Tercera pasada: analizar cada función
   for (auto fd : program->fdlist) {
     fd->accept(this);
   }
@@ -85,8 +96,11 @@ int TypeCheckerVisitor::visit(FunDec *fd) {
   entorno.add_level();
 
   // Registrar los parámetros como variables del scope actual
-  for (auto &nombre : fd->Pnombres)
-    entorno.add_var(nombre, 0);
+  for (size_t i = 0; i < fd->Pnombres.size(); i++) {
+    entorno.add_var(fd->Pnombres[i], 0);
+    if (structInfo.find(fd->Ptipos[i]) != structInfo.end())
+      varStructType[fd->Pnombres[i]] = fd->Ptipos[i];
+  }
 
   // Analizar el cuerpo
   fd->cuerpo->accept(this);
@@ -120,6 +134,12 @@ int TypeCheckerVisitor::visit(Body *body) {
 // -----------------------------------------------------------------------------
 
 int TypeCheckerVisitor::visit(VarDec *vd) {
+  // Si el tipo es un struct conocido, registrar el mapeo variable → struct
+  if (structInfo.find(vd->type) != structInfo.end()) {
+    for (auto &var : vd->vars) {
+      varStructType[var] = vd->type;
+    }
+  }
   for (auto &nombre : vd->vars) {
     if (entorno.check(nombre)) {
       std::cerr << "[TypeChecker] Advertencia: la variable '" << nombre
@@ -274,7 +294,12 @@ int TypeCheckerVisitor::visit(IndexExp *exp) {
 int TypeCheckerVisitor::computeAddress(IndexExp *exp) { return 0; }
 
 int TypeCheckerVisitor::visit(NumberExp *exp) { return 0; }
-int TypeCheckerVisitor::visit(Program *p) { return 0; }
+int TypeCheckerVisitor::visit(Program *p) {
+  // Struct definitions already processed in TypeChecker entry point
+  for (auto dec : p->vdlist)
+    dec->accept(this);
+  return 0;
+}
 
 int TypeCheckerVisitor::visit(DoWhileStm *stm) {
   stm->condition->accept(this);
@@ -292,6 +317,67 @@ int TypeCheckerVisitor::visit(SwitchStm *stm) {
   }
   for (auto s : stm->default_body)
     s->accept(this);
+  return 0;
+}
+
+// =============================================================================
+// TypeCheckerVisitor — Nuevos nodos
+// =============================================================================
+
+int TypeCheckerVisitor::visit(StructDec *sd) {
+  std::vector<std::string> fieldNames;
+  for (auto field : sd->fields) {
+    for (auto &varName : field->vars) {
+      fieldNames.push_back(varName);
+    }
+  }
+  structInfo[sd->name] = fieldNames;
+  return 0;
+}
+
+int TypeCheckerVisitor::visit(FieldAccessExp *exp) {
+  if (!entorno.check(exp->name)) {
+    throw std::runtime_error("[TypeChecker] Variable no declarada: '" +
+                             exp->name + "'");
+  }
+  if (varStructType.find(exp->name) == varStructType.end()) {
+    throw std::runtime_error("[TypeChecker] La variable '" + exp->name +
+                             "' no es de tipo struct");
+  }
+  std::string structType = varStructType[exp->name];
+  auto &fields = structInfo[structType];
+  bool found = false;
+  for (auto &f : fields) {
+    if (f == exp->field) { found = true; break; }
+  }
+  if (!found) {
+    throw std::runtime_error("[TypeChecker] El struct '" + structType +
+                             "' no tiene campo '" + exp->field + "'");
+  }
+  return 0;
+}
+
+int TypeCheckerVisitor::computeAddress(FieldAccessExp *exp) { return 0; }
+
+int TypeCheckerVisitor::visit(MultiIndexExp *exp) {
+  if (!entorno.check(exp->name)) {
+    throw std::runtime_error("[TypeChecker] Variable no declarada: '" +
+                             exp->name + "'");
+  }
+  if (exp->indices.size() != 2) {
+    throw std::runtime_error("[TypeChecker] La matriz '" + exp->name +
+                             "' requiere exactamente 2 indices");
+  }
+  for (auto idx : exp->indices)
+    idx->accept(this);
+  return 0;
+}
+
+int TypeCheckerVisitor::computeAddress(MultiIndexExp *exp) { return 0; }
+
+int TypeCheckerVisitor::visit(ExpListSize2D *stm) {
+  stm->size1->accept(this);
+  stm->size2->accept(this);
   return 0;
 }
 
@@ -815,5 +901,172 @@ int GenCodeVisitor::visit(SwitchStm *stm) {
 
   out << "endswitch_" << lbl << ":\n";
 
+  return 0;
+}
+
+// =============================================================================
+// GenCodeVisitor — Nuevos nodos
+// =============================================================================
+
+// -----------------------------------------------------------------------------
+// StructDec — las definiciones de struct son información de tipo,
+// no generan código ensamblador.
+// -----------------------------------------------------------------------------
+
+int GenCodeVisitor::visit(StructDec *sd) { return 0; }
+
+// -----------------------------------------------------------------------------
+// FieldAccessExp — acceso a campo de struct (lectura)
+//   carga el puntero del struct y accede al offset del campo
+// -----------------------------------------------------------------------------
+
+int GenCodeVisitor::visit(FieldAccessExp *exp) {
+  // Cargar puntero del struct
+  if (memoriaGlobal.count(exp->name))
+    out << " movq " << exp->name << "(%rip), %rax\n";
+  else
+    out << " movq " << memoria[exp->name] << "(%rbp), %rax\n";
+
+  // Encontrar offset del campo
+  std::string structType = tipos.varStructType[exp->name];
+  auto &fields = tipos.structInfo[structType];
+  int fieldIndex = 0;
+  for (size_t i = 0; i < fields.size(); i++) {
+    if (fields[i] == exp->field) { fieldIndex = i; break; }
+  }
+  int fieldOffset = fieldIndex * 8;
+
+  out << " movq " << fieldOffset << "(%rax), %rax\n";
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// computeAddress(FieldAccessExp) — asignación a campo de struct (escritura)
+//   p.x = expr  → el valor está en %rax, se almacena en el offset del campo
+// -----------------------------------------------------------------------------
+
+int GenCodeVisitor::computeAddress(FieldAccessExp *idx) {
+  out << " pushq %rax\n";
+
+  if (memoriaGlobal.count(idx->name))
+    out << " movq " << idx->name << "(%rip), %rax\n";
+  else
+    out << " movq " << memoria[idx->name] << "(%rbp), %rax\n";
+
+  std::string structType = tipos.varStructType[idx->name];
+  auto &fields = tipos.structInfo[structType];
+  int fieldIndex = 0;
+  for (size_t i = 0; i < fields.size(); i++) {
+    if (fields[i] == idx->field) { fieldIndex = i; break; }
+  }
+  int fieldOffset = fieldIndex * 8;
+
+  out << " popq %rcx\n";
+  out << " movq %rcx, " << fieldOffset << "(%rax)\n";
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// ExpListSize2D — new int[rows][cols]
+//   Asigna (rows * cols + 1) * 8 bytes (cabecera guarda nCols)
+//   Retorna puntero al área de datos (base + 8)
+// -----------------------------------------------------------------------------
+
+int GenCodeVisitor::visit(ExpListSize2D *stm) {
+  // Evaluar rows
+  stm->size1->accept(this);
+  out << " pushq %rax\n";       // guardar rows
+
+  // Evaluar cols
+  stm->size2->accept(this);
+  out << " pushq %rax\n";       // guardar cols
+
+  // Calcular total = (rows * cols + 1) * 8
+  out << " popq %rcx\n";        // rcx = cols
+  out << " popq %rax\n";        // rax = rows
+  out << " pushq %rcx\n";       // guardar cols para después de malloc
+  out << " imulq %rcx, %rax\n"; // rax = rows * cols
+  out << " addq $1, %rax\n";    // +1 para cabecera
+  out << " salq $3, %rax\n";    // * 8
+  out << " movq %rax, %rdi\n";
+  out << " call malloc@PLT\n";  // rax = ptr
+
+  // Guardar nCols en cabecera (offset 0)
+  out << " popq %rcx\n";        // rcx = cols
+  out << " movq %rcx, 0(%rax)\n";  // ptr[0] = nCols
+
+  // Retornar puntero al área de datos (ptr + 8)
+  out << " lea 8(%rax), %rax\n";
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// MultiIndexExp — acceso a matriz 2D (lectura)
+//   m[i][j] → carga puntero, lee nCols de cabecera, calcula offset
+// -----------------------------------------------------------------------------
+
+int GenCodeVisitor::visit(MultiIndexExp *exp) {
+  // Evaluar j (segundo índice)
+  exp->indices[1]->accept(this);
+  out << " movq %rax, %rdi\n";   // rdi = j
+
+  // Evaluar i (primer índice)
+  exp->indices[0]->accept(this);
+  out << " pushq %rax\n";        // guardar i
+
+  // Cargar puntero base (apunta al área de datos = malloc + 8)
+  if (memoriaGlobal.count(exp->name))
+    out << " movq " << exp->name << "(%rip), %rbx\n";
+  else
+    out << " movq " << memoria[exp->name] << "(%rbp), %rbx\n";
+
+  // Leer nCols de la cabecera (en malloc+0, o sea rbx-8)
+  out << " movq -8(%rbx), %rsi\n"; // rsi = nCols
+
+  // Calcular offset = i * nCols + j
+  out << " popq %rax\n";          // rax = i
+  out << " imulq %rsi, %rax\n";   // rax = i * nCols
+  out << " addq %rdi, %rax\n";    // rax = offset
+
+  // Leer valor en (rbx + offset * 8), rbx ya apunta al area de datos
+  out << " movq (%rbx, %rax, 8), %rax\n";
+  return 0;
+}
+
+// -----------------------------------------------------------------------------
+// computeAddress(MultiIndexExp) — asignación a matriz 2D (escritura)
+//   m[i][j] = expr
+// -----------------------------------------------------------------------------
+
+int GenCodeVisitor::computeAddress(MultiIndexExp *idx) {
+  out << " pushq %rax\n";        // guardar valor a asignar
+
+  // Evaluar j (segundo índice) → rdi
+  idx->indices[1]->accept(this);
+  out << " movq %rax, %rdi\n";
+
+  // Evaluar i (primer índice) → rsi
+  idx->indices[0]->accept(this);
+  out << " movq %rax, %rsi\n";
+
+  // Cargar puntero base (apunta al área de datos = malloc + 8)
+  if (memoriaGlobal.count(idx->name))
+    out << " movq " << idx->name << "(%rip), %rbx\n";
+  else
+    out << " movq " << memoria[idx->name] << "(%rbp), %rbx\n";
+
+  // Leer nCols de la cabecera (en malloc+0, o sea rbx-8)
+  out << " movq -8(%rbx), %r8\n";  // r8 = nCols
+
+  // Calcular offset = i * nCols + j
+  out << " movq %rsi, %rax\n";    // rax = i
+  out << " imulq %r8, %rax\n";    // rax = i * nCols
+  out << " addq %rdi, %rax\n";    // rax = offset
+
+  // Restaurar valor a asignar
+  out << " popq %rcx\n";          // rcx = valor
+
+  // Almacenar en (rbx + offset * 8), rbx ya apunta al area de datos
+  out << " movq %rcx, (%rbx, %rax, 8)\n";
   return 0;
 }

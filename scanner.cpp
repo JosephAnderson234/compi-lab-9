@@ -94,6 +94,8 @@ Token *Scanner::nextToken() {
       return new Token(Token::ENDSWITCH, input, first, current - first);
     if (lexema == "var")
       return new Token(Token::VAR, input, first, current - first);
+    if (lexema == "struct")
+      return new Token(Token::STRUCT, input, first, current - first);
     if (lexema == "true")
       return new Token(Token::TRUE, input, first, current - first);
     if (lexema == "false")
@@ -111,7 +113,7 @@ Token *Scanner::nextToken() {
   }
 
   // ---- Operadores y delimitadores ----
-  if (strchr("+/-*()[]{};=<>!&|,", c)) {
+  if (strchr("+/-*()[]{};=<>!&|,.", c)) {
     Token *token = nullptr;
     switch (c) {
     case '+':
@@ -148,6 +150,10 @@ Token *Scanner::nextToken() {
       break;
     case '}':
       token = new Token(Token::RBRACE, c);
+      current++;
+      break;
+    case '.':
+      token = new Token(Token::DOT, c);
       current++;
       break;
     case ';':

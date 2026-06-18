@@ -33,6 +33,8 @@ class FunDec;
 class FcallExp;
 class IdExp;
 class IndexExp;
+class FieldAccessExp;
+class MultiIndexExp;
 class IfStm;
 class NumberExp;
 class PrintStm;
@@ -42,10 +44,11 @@ class Stm;
 class SwitchStm;
 class UnaryExp;
 class VarDec;
+class StructDec;
 class WhileStm;
 class ExpListSize;
+class ExpListSize2D;
 class ExpListVals;
-class WhileStm;
 
 // =============================================================================
 // Clase base abstracta Visitor
@@ -60,6 +63,10 @@ public:
   virtual int visit(UnaryExp *exp) = 0;
   virtual int visit(IndexExp *exp) = 0;
   virtual int computeAddress(IndexExp *exp) = 0;
+  virtual int visit(FieldAccessExp *exp) = 0;
+  virtual int computeAddress(FieldAccessExp *exp) = 0;
+  virtual int visit(MultiIndexExp *exp) = 0;
+  virtual int computeAddress(MultiIndexExp *exp) = 0;
   virtual int visit(Program *p) = 0;
   virtual int visit(PrintStm *stm) = 0;
   virtual int visit(WhileStm *stm) = 0;
@@ -67,11 +74,13 @@ public:
   virtual int visit(IfStm *stm) = 0;
   virtual int visit(AssignStm *stm) = 0;
   virtual int visit(ExpListSize *stm) = 0;
+  virtual int visit(ExpListSize2D *stm) = 0;
   virtual int visit(ExpListVals *stm) = 0;
   virtual int visit(BreakStm *stm) = 0;
   virtual int visit(SwitchStm *stm) = 0;
   virtual int visit(Body *body) = 0;
   virtual int visit(VarDec *vd) = 0;
+  virtual int visit(StructDec *sd) = 0;
   virtual int visit(FcallExp *fc) = 0;
   virtual int visit(ReturnStm *r) = 0;
   virtual int visit(FunDec *fd) = 0;
@@ -88,6 +97,12 @@ public:
 
   // Mapa función → número de parámetros (para verificar aridad en llamadas)
   std::unordered_map<std::string, int> funAridad;
+
+  // Información de structs: nombre → lista de nombres de campos
+  std::unordered_map<std::string, std::vector<std::string>> structInfo;
+
+  // Tipo de cada variable (nombre var → nombre tipo struct)
+  std::unordered_map<std::string, std::string> varStructType;
 
   // Contador de variables locales del cuerpo actual (acumulado por
   // visit(VarDec))
@@ -110,10 +125,15 @@ public:
   int visit(UnaryExp *exp) override;
   int visit(IndexExp *exp) override;
   int computeAddress(IndexExp *exp) override;
+  int visit(FieldAccessExp *exp) override;
+  int computeAddress(FieldAccessExp *exp) override;
+  int visit(MultiIndexExp *exp) override;
+  int computeAddress(MultiIndexExp *exp) override;
   int visit(Program *p) override;
   int visit(PrintStm *stm) override;
   int visit(AssignStm *stm) override;
   int visit(ExpListSize *stm) override;
+  int visit(ExpListSize2D *stm) override;
   int visit(ExpListVals *stm) override;
   int visit(WhileStm *stm) override;
   int visit(DoWhileStm *stm) override;
@@ -122,6 +142,7 @@ public:
   int visit(SwitchStm *stm) override;
   int visit(Body *body) override;
   int visit(VarDec *vd) override;
+  int visit(StructDec *sd) override;
   int visit(FcallExp *fc) override;
   int visit(ReturnStm *r) override;
   int visit(FunDec *fd) override;
@@ -167,10 +188,15 @@ public:
   int visit(UnaryExp *exp) override;
   int visit(IndexExp *exp) override;
   int computeAddress(IndexExp *exp) override;
+  int visit(FieldAccessExp *exp) override;
+  int computeAddress(FieldAccessExp *exp) override;
+  int visit(MultiIndexExp *exp) override;
+  int computeAddress(MultiIndexExp *exp) override;
   int visit(Program *p) override;
   int visit(PrintStm *stm) override;
   int visit(AssignStm *stm) override;
   int visit(ExpListSize *stm) override;
+  int visit(ExpListSize2D *stm) override;
   int visit(ExpListVals *stm) override;
   int visit(WhileStm *stm) override;
   int visit(DoWhileStm *stm) override;
@@ -179,6 +205,7 @@ public:
   int visit(SwitchStm *stm) override;
   int visit(Body *body) override;
   int visit(VarDec *vd) override;
+  int visit(StructDec *sd) override;
   int visit(FcallExp *fc) override;
   int visit(ReturnStm *r) override;
   int visit(FunDec *fd) override;

@@ -1,28 +1,37 @@
-fun int main()
-    var int x,y,z;
-    x = 1;
-    y = 3;
-    z = 5;
-    do
-        if (x <= y) && (z > y) then
-            print(x)
-        endif
-        switch x
-        case 1
-            print(100);
-            break
-        case 2
-            print(200);
-            break
-        case 3
-            print(300);
-            break
-        default
-            print(999)
-        endswitch;
-        x = x + 1
-    dowhile (x <= 4) || (x == 5)
-    enddo;
-    return(0)
+struct Pair {
+ var int x;
+ var int y;
+};
 
+fun int makesum(Pair p)
+ return(p.x + p.y)
+endfun
+
+fun int main()
+ var matrix m;
+ var int i;
+ var int j;
+ var Pair a;
+ var Pair b;
+ a = new Pair{5, 10};
+ b = new Pair{3, 20};
+ m = new int[2][2];
+ i = 0;
+ while (i < 2) do
+   j = 0;
+   while (j < 2) do
+     if (i == 0) then
+       m[i][j] = a.x
+     else
+       m[i][j] = b.y
+     endif;
+     j = j + 1
+   endwhile;
+   i = i + 1
+ endwhile;
+ print(m[0][0]);
+ print(m[1][1]);
+ print(makesum(a));
+ print(makesum(b));
+ return(0)
 endfun

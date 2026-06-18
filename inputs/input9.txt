@@ -1,12 +1,21 @@
+struct Pair {
+ var int a;
+ var int b;
+};
+
 fun int main()
-    var int x,y,z;
-    x = 5;
-    y = 8;
-    z = 10;
-    if x < y then
-        if (y < z) && (x < z) then
-            print(1)
-        endif
-    endif;
-    return(0)
+ var Pair p;
+ var int s;
+ p = new Pair{7, 9};
+ s = 0;
+ if (p.a < p.b) then
+   s = p.b - p.a
+ else
+   s = p.a - p.b
+ endif;
+ while (s > 0) do
+   print(s);
+   s = s - 1
+ endwhile;
+ return(0)
 endfun

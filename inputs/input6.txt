@@ -1,10 +1,35 @@
+fun int fib(int n)
+ var int a;
+ var int b;
+ var int c;
+ var int i;
+ a = 0;
+ b = 1;
+ if (n <= 0) then
+   return(0)
+ endif;
+ if (n == 1) then
+   return(1)
+ endif;
+ i = 2;
+ while (i <= n) do
+   c = a + b;
+   a = b;
+   b = c;
+   i = i + 1
+ endwhile;
+ return(b)
+endfun
+
 fun int main()
-    var int x,y,z;
-    x = 5;
-    y = 10;
-    z = 15;
-    if ((x < y) && (y < z)) || (z == 0) then
-        print(1)
-    endif;
-    return(0)
+ var matrix m;
+ var int i;
+ m = new int[10][1];
+ i = 0;
+ while (i < 10) do
+   m[i][0] = fib(i);
+   print(m[i][0]);
+   i = i + 1
+ endwhile;
+ return(0)
 endfun
